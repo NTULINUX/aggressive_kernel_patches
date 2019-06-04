@@ -1,0 +1,47 @@
+From 59170faeaa11c0b110503ee9af6be7b048f4d2bd Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Tue, 4 Jun 2019 18:03:39 -0500
+Subject: arch/x86/Kconfig: Re-work PCI configs on x86_64 platforms
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ arch/x86/Kconfig | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d70e9306ca34..288ad242e019 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2589,7 +2589,7 @@ menu "Bus options (PCI etc.)"
+ 
+ choice
+ 	prompt "PCI access mode"
+-	depends on X86_32 && PCI
++	depends on PCI
+ 	default PCI_GOANY
+ 	---help---
+ 	  On PCI systems, the BIOS can be used to detect the PCI devices and
+@@ -2608,6 +2608,7 @@ choice
+ 
+ config PCI_GOBIOS
+ 	bool "BIOS"
++	depends on !X86_64
+ 
+ config PCI_GOMMCONFIG
+ 	bool "MMConfig"
+@@ -2624,11 +2625,11 @@ config PCI_GOANY
+ 
+ endchoice
+ 
++# x86-64 doesn't support PCI BIOS access from long mode
+ config PCI_BIOS
+ 	def_bool y
+ 	depends on X86_32 && PCI && (PCI_GOBIOS || PCI_GOANY)
+ 
+-# x86-64 doesn't support PCI BIOS access from long mode so always go direct.
+ config PCI_DIRECT
+ 	def_bool y
+ 	depends on PCI && (X86_64 || (PCI_GODIRECT || PCI_GOANY || PCI_GOOLPC || PCI_GOMMCONFIG))
+-- 
+2.20.1
+

@@ -1,0 +1,40 @@
+From 3a6de50df01f914050bfff8574241b9a5c9d13c6 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Sun, 2 Jun 2019 18:19:23 -0500
+Subject: drivers/gpu/drm/Kconfig: Indentation fixes
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ drivers/gpu/drm/Kconfig | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/Kconfig b/drivers/gpu/drm/Kconfig
+index 4385f00e1d05..3cb69c446a9d 100644
+--- a/drivers/gpu/drm/Kconfig
++++ b/drivers/gpu/drm/Kconfig
+@@ -193,8 +193,8 @@ config DRM_RADEON
+ 	tristate "ATI Radeon"
+ 	depends on DRM && PCI && MMU
+ 	select FW_LOADER
+-        select DRM_KMS_HELPER
+-        select DRM_TTM
++	select DRM_KMS_HELPER
++	select DRM_TTM
+ 	select POWER_SUPPLY
+ 	select HWMON
+ 	select BACKLIGHT_CLASS_DEVICE
+@@ -213,9 +213,9 @@ config DRM_AMDGPU
+ 	tristate "AMD GPU"
+ 	depends on DRM && PCI && MMU
+ 	select FW_LOADER
+-        select DRM_KMS_HELPER
++	select DRM_KMS_HELPER
+ 	select DRM_SCHED
+-        select DRM_TTM
++	select DRM_TTM
+ 	select POWER_SUPPLY
+ 	select HWMON
+ 	select BACKLIGHT_CLASS_DEVICE
+-- 
+2.20.1
+

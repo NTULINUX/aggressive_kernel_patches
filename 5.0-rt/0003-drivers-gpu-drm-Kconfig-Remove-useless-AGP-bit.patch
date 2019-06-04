@@ -1,0 +1,29 @@
+From bf66f7f9b88f1ef1d64985a5b4b4b1172b54add2 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Sun, 2 Jun 2019 20:07:44 -0500
+Subject: drivers/gpu/drm/Kconfig: Remove useless AGP bit
+
+CONFIG_DRM depends on CONFIG_AGP or !CONFIG_AGP...
+Why is this even here? If it doesn't matter, remove it.
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ drivers/gpu/drm/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/Kconfig b/drivers/gpu/drm/Kconfig
+index 8ea9b49f2183..520d151b1ec8 100644
+--- a/drivers/gpu/drm/Kconfig
++++ b/drivers/gpu/drm/Kconfig
+@@ -6,7 +6,7 @@
+ #
+ menuconfig DRM
+ 	tristate "Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)"
+-	depends on (AGP || AGP=n) && !EMULATED_CMPXCHG && HAS_DMA
++	depends on !EMULATED_CMPXCHG && HAS_DMA
+ 	select DRM_PANEL_ORIENTATION_QUIRKS
+ 	select HDMI
+ 	select FB_CMDLINE
+-- 
+2.20.1
+

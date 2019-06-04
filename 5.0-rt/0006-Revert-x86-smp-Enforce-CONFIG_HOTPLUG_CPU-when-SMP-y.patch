@@ -1,0 +1,33 @@
+From d901d282b86cc838dd6f7b8ec1022d7a48d2d073 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Tue, 4 Jun 2019 00:35:02 -0500
+Subject: Revert "x86/smp: Enforce CONFIG_HOTPLUG_CPU when SMP=y"
+
+This reverts commit 8c0823aa123b7b4cd5ebc9fbed324dbe4a37755d.
+---
+ arch/x86/Kconfig | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bd421ee17a6f..c2e98bfe3c78 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2231,8 +2231,14 @@ config RANDOMIZE_MEMORY_PHYSICAL_PADDING
+ 	   If unsure, leave at the default value.
+ 
+ config HOTPLUG_CPU
+-	def_bool y
++	bool "Support for hot-pluggable CPUs"
+ 	depends on SMP
++	---help---
++	  Say Y here to allow turning CPUs off and on. CPUs can be
++	  controlled through /sys/devices/system/cpu.
++	  ( Note: power management support will enable this option
++	    automatically on SMP systems. )
++	  Say N if you want to disable CPU hotplug.
+ 
+ config BOOTPARAM_HOTPLUG_CPU0
+ 	bool "Set default setting of cpu0_hotpluggable"
+-- 
+2.20.1
+

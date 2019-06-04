@@ -1,0 +1,44 @@
+From 1a9995fb40bda5ba310ded9ab23742278c18f819 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Sun, 2 Jun 2019 20:13:55 -0500
+Subject: drivers/gpu/drm/Kconfig: I don't need these quirks
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ drivers/gpu/drm/Kconfig         | 1 -
+ drivers/gpu/drm/drm_connector.c | 2 ++
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/Kconfig b/drivers/gpu/drm/Kconfig
+index 520d151b1ec8..29701a9d4e8a 100644
+--- a/drivers/gpu/drm/Kconfig
++++ b/drivers/gpu/drm/Kconfig
+@@ -7,7 +7,6 @@
+ menuconfig DRM
+ 	tristate "Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)"
+ 	depends on !EMULATED_CMPXCHG && HAS_DMA
+-	select DRM_PANEL_ORIENTATION_QUIRKS
+ 	select HDMI
+ 	select FB_CMDLINE
+ 	select I2C
+diff --git a/drivers/gpu/drm/drm_connector.c b/drivers/gpu/drm/drm_connector.c
+index da8ae80c2750..8fd928775bab 100644
+--- a/drivers/gpu/drm/drm_connector.c
++++ b/drivers/gpu/drm/drm_connector.c
+@@ -1781,11 +1781,13 @@ int drm_connector_init_panel_orientation_property(
+ 	struct drm_device *dev = connector->dev;
+ 	struct drm_display_info *info = &connector->display_info;
+ 	struct drm_property *prop;
++#if defined DRM_PANEL_ORIENTATION_QUIRKS
+ 	int orientation_quirk;
+ 
+ 	orientation_quirk = drm_get_panel_orientation_quirk(width, height);
+ 	if (orientation_quirk != DRM_MODE_PANEL_ORIENTATION_UNKNOWN)
+ 		info->panel_orientation = orientation_quirk;
++#endif
+ 
+ 	if (info->panel_orientation == DRM_MODE_PANEL_ORIENTATION_UNKNOWN)
+ 		return 0;
+-- 
+2.20.1
+

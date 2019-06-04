@@ -1,0 +1,83 @@
+From 52cfc8ba3eb0bff08888968ad1ea51b7394aefe2 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Tue, 4 Jun 2019 16:42:44 -0500
+Subject: Kconfig: Allow disabling of some ACPI options
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ arch/x86/Kconfig     |  1 -
+ drivers/acpi/Kconfig | 19 +++++++++++++++----
+ 2 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c2e98bfe3c78..d70e9306ca34 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -45,7 +45,6 @@ config X86
+ 	# Note: keep this list sorted alphabetically
+ 	#
+ 	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+-	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+ 	select ANON_INODES
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_CLOCKSOURCE_INIT
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index 90ff0a47c12e..262a60bd45ce 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -55,7 +55,11 @@ config ACPI_GENERIC_GSI
+ 	bool
+ 
+ config ACPI_SYSTEM_POWER_STATES_SUPPORT
+-	bool
++	bool "System power states support"
++	default y if X86
++	help
++	  Don't turn this off unless you know what you're doing.
++
+ 
+ config ACPI_CCA_REQUIRED
+ 	bool
+@@ -89,9 +93,11 @@ config ACPI_SPCR_TABLE
+ 	  earlycon console.
+ 
+ config ACPI_LPIT
+-	bool
++	bool "Low Power Idle Table (LPIT) support"
+ 	depends on X86_64
+ 	default y
++	help
++	  Don't turn this off unless you know what you're doing.
+ 
+ config ACPI_SLEEP
+ 	bool
+@@ -242,8 +248,11 @@ config ACPI_CPU_FREQ_PSS
+ 	select THERMAL
+ 
+ config ACPI_PROCESSOR_CSTATE
+-	def_bool y
++	bool "Processor C-State"
+ 	depends on IA64 || X86
++	default y
++	help
++	  Don't turn this off unless you know what you're doing.
+ 
+ config ACPI_PROCESSOR_IDLE
+ 	bool
+@@ -406,10 +415,12 @@ config ACPI_HOTPLUG_MEMORY
+ 	  the module will be called acpi_memhotplug.
+ 
+ config ACPI_HOTPLUG_IOAPIC
+-	bool
++	bool "IOAPIC Hotplug"
+ 	depends on PCI
+ 	depends on X86_IO_APIC
+ 	default y
++	help
++	  Don't turn this off unless you know what you're doing.
+ 
+ config ACPI_SBS
+ 	tristate "Smart Battery System"
+-- 
+2.20.1
+
