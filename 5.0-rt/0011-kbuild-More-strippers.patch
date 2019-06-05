@@ -1,0 +1,70 @@
+From 53a357a63288230a03c2982f58211e7edb93f46d Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Tue, 4 Jun 2019 23:26:44 -0500
+Subject: kbuild: More strippers!
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ Makefile | 25 ++++++++-----------------
+ 1 file changed, 8 insertions(+), 17 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 66efffc3fb41..123c06a3331a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -391,7 +391,7 @@ HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
+ HOSTCC       = gcc
+ HOSTCXX      = g++
+ KBUILD_HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
+-		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) \
++		-fomit-frame-pointer -std=gnu89 -fweb -s $(HOST_LFS_CFLAGS) \
+ 		$(HOSTCFLAGS)
+ KBUILD_HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
+ KBUILD_HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS) $(HOSTLDFLAGS)
+@@ -679,6 +679,8 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
+ 
++KBUILD_CFLAGS	+= -fweb -s
++
+ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
+ else
+@@ -807,8 +809,8 @@ KBUILD_CFLAGS += $(call cc-option, -fno-inline-functions-called-once)
+ endif
+ 
+ ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+-KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections
+-LDFLAGS_vmlinux += --gc-sections
++KBUILD_CFLAGS_KERNEL += -ffunction-sections -fdata-sections -fweb -s
++LDFLAGS_vmlinux += --gc-sections -Wl,--strip-all
+ endif
+ 
+ # arch Makefile may override CC so keep this after arch Makefile is included
+@@ -913,20 +915,9 @@ MODLIB	= $(INSTALL_MOD_PATH)/lib/modules/$(KERNELRELEASE)
+ export MODLIB
+ 
+ #
+-# INSTALL_MOD_STRIP, if defined, will cause modules to be
+-# stripped after they are installed.  If INSTALL_MOD_STRIP is '1', then
+-# the default option --strip-debug will be used.  Otherwise,
+-# INSTALL_MOD_STRIP value will be used as the options to the strip command.
+-
+-ifdef INSTALL_MOD_STRIP
+-ifeq ($(INSTALL_MOD_STRIP),1)
+-mod_strip_cmd = $(STRIP) --strip-debug
+-else
+-mod_strip_cmd = $(STRIP) $(INSTALL_MOD_STRIP)
+-endif # INSTALL_MOD_STRIP=1
+-else
+-mod_strip_cmd = true
+-endif # INSTALL_MOD_STRIP
++# Strip modules real good.
++
++mod_strip_cmd = $(STRIP) --strip-unneeded --strip-debug
+ export mod_strip_cmd
+ 
+ # CONFIG_MODULE_COMPRESS, if defined, will cause module to be compressed
+-- 
+2.20.1
+
