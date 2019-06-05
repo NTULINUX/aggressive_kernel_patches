@@ -1,0 +1,28 @@
+From 59252faabd6ee7bb4ac28020a9dbf2f69d0bd7ae Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Tue, 4 Jun 2019 23:50:21 -0500
+Subject: kbuild: Force usage of ld.gold
+
+Gold is better, use that. If you don't have it, GEET!
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 123c06a3331a..5583d7d3fd0b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -399,7 +399,7 @@ KBUILD_HOSTLDLIBS   := $(HOST_LFS_LIBS) $(HOSTLDLIBS)
+ 
+ # Make variables (CC, etc...)
+ AS		= $(CROSS_COMPILE)as
+-LD		= $(CROSS_COMPILE)ld
++LD		= $(CROSS_COMPILE)ld.gold
+ CC		= $(CROSS_COMPILE)gcc
+ CPP		= $(CC) -E
+ AR		= $(CROSS_COMPILE)ar
+-- 
+2.20.1
+
