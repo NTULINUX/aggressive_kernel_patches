@@ -1,0 +1,251 @@
+From 8a39db7f6b03c57356cb800370899cabed2c263f Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Wed, 5 Jun 2019 23:45:51 -0500
+Subject: Separate ACPI and PNP
+
+Reduces the size of BzImage of about ~30KB. Don't use this.
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ drivers/acpi/Kconfig         |  7 ++++++-
+ drivers/acpi/Makefile        | 12 ++++++------
+ drivers/acpi/acpica/Makefile |  8 +++++---
+ drivers/acpi/bus.c           | 12 ++++++++++++
+ drivers/acpi/property.c      |  2 ++
+ drivers/acpi/scan.c          | 12 ++++++++++++
+ drivers/pnp/pnpacpi/Kconfig  |  7 +++++--
+ drivers/pnp/pnpbios/Kconfig  |  1 +
+ 8 files changed, 49 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index 262a60bd45ce..b166f7719c75 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -9,7 +9,6 @@ config ARCH_SUPPORTS_ACPI
+ menuconfig ACPI
+ 	bool "ACPI (Advanced Configuration and Power Interface) Support"
+ 	depends on ARCH_SUPPORTS_ACPI
+-	select PNP
+ 	select NLS
+ 	default y if X86
+ 	help
+@@ -60,6 +59,12 @@ config ACPI_SYSTEM_POWER_STATES_SUPPORT
+ 	help
+ 	  Don't turn this off unless you know what you're doing.
+ 
++config ACPI_APPLE
++	bool "Apple ACPI quirks"
++	default y if X86
++	help
++	  Don't turn this off unless you know what you're doing.
++
+ 
+ config ACPI_CCA_REQUIRED
+ 	bool
+diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
+index bb857421c2e8..c76f676eaf81 100644
+--- a/drivers/acpi/Makefile
++++ b/drivers/acpi/Makefile
+@@ -41,10 +41,10 @@ acpi-y				+= ec.o
+ acpi-$(CONFIG_ACPI_DOCK)	+= dock.o
+ acpi-$(CONFIG_PCI)		+= pci_root.o pci_link.o pci_irq.o
+ obj-$(CONFIG_ACPI_MCFG)		+= pci_mcfg.o
+-acpi-$(CONFIG_PCI)		+= acpi_lpss.o
+-acpi-y				+= acpi_apd.o
+-acpi-y				+= acpi_platform.o
+-acpi-y				+= acpi_pnp.o
++acpi-$(CONFIG_X86_INTEL_LPSS)	+= acpi_lpss.o
++acpi-$(CONFIG_PNPACPI)		+= acpi_apd.o
++acpi-$(CONFIG_PNPACPI)		+= acpi_platform.o
++acpi-$(CONFIG_PNPACPI)		+= acpi_pnp.o
+ acpi-$(CONFIG_ARM_AMBA)	+= acpi_amba.o
+ acpi-y				+= power.o
+ acpi-y				+= event.o
+@@ -52,7 +52,7 @@ acpi-$(CONFIG_ACPI_REDUCED_HARDWARE_ONLY) += evged.o
+ acpi-y				+= sysfs.o
+ acpi-y				+= property.o
+ acpi-$(CONFIG_X86)		+= acpi_cmos_rtc.o
+-acpi-$(CONFIG_X86)		+= x86/apple.o
++acpi-$(CONFIG_ACPI_APPLE)	+= x86/apple.o
+ acpi-$(CONFIG_X86)		+= x86/utils.o
+ acpi-$(CONFIG_DEBUG_FS)		+= debugfs.o
+ acpi-$(CONFIG_ACPI_NUMA)	+= numa.o
+@@ -77,7 +77,7 @@ obj-$(CONFIG_ACPI_VIDEO)	+= video.o
+ obj-$(CONFIG_ACPI_TAD)		+= acpi_tad.o
+ obj-$(CONFIG_ACPI_PCI_SLOT)	+= pci_slot.o
+ obj-$(CONFIG_ACPI_PROCESSOR)	+= processor.o
+-obj-$(CONFIG_ACPI)		+= container.o
++obj-$(CONFIG_ACPI_CONTAINER)	+= container.o
+ obj-$(CONFIG_ACPI_THERMAL)	+= thermal.o
+ obj-$(CONFIG_ACPI_NFIT)		+= nfit/
+ obj-$(CONFIG_ACPI)		+= acpi_memhotplug.o
+diff --git a/drivers/acpi/acpica/Makefile b/drivers/acpi/acpica/Makefile
+index 59700433a96e..92887d1bad24 100644
+--- a/drivers/acpi/acpica/Makefile
++++ b/drivers/acpi/acpica/Makefile
+@@ -75,12 +75,14 @@ acpi-y +=		\
+ 
+ acpi-y +=		\
+ 	hwacpi.o	\
+-	hwesleep.o	\
+ 	hwgpe.o		\
+ 	hwregs.o	\
+-	hwsleep.o	\
+ 	hwvalid.o	\
+-	hwxface.o	\
++	hwxface.o
++
++acpi-$(CONFIG_ACPI_SLEEP) += \
++	hwesleep.o	\
++	hwsleep.o	\
+ 	hwxfsleep.o
+ 
+ acpi-$(CONFIG_PCI) += hwpci.o
+diff --git a/drivers/acpi/bus.c b/drivers/acpi/bus.c
+index 147f6c7ea59c..893811d79f8a 100644
+--- a/drivers/acpi/bus.c
++++ b/drivers/acpi/bus.c
+@@ -426,6 +426,8 @@ static void acpi_bus_notify(acpi_handle handle, u32 type, void *data)
+ 	acpi_evaluate_ost(handle, type, ost_code, NULL);
+ }
+ 
++#if defined CONFIG_PNPACPI
++
+ static void acpi_device_notify(acpi_handle handle, u32 event, void *data)
+ {
+ 	struct acpi_device *device = data;
+@@ -535,6 +537,8 @@ static int __init acpi_setup_sb_notify_handler(void)
+ 	return 0;
+ }
+ 
++#endif /* CONFIG_PNPACPI */
++
+ /* --------------------------------------------------------------------------
+                              Device Matching
+    -------------------------------------------------------------------------- */
+@@ -878,6 +882,8 @@ EXPORT_SYMBOL(acpi_bus_unregister_driver);
+                               ACPI Bus operations
+    -------------------------------------------------------------------------- */
+ 
++#if defined CONFIG_PNPACPI
++
+ static int acpi_bus_match(struct device *dev, struct device_driver *drv)
+ {
+ 	struct acpi_device *acpi_dev = to_acpi_device(dev);
+@@ -949,12 +955,16 @@ static int acpi_device_remove(struct device *dev)
+ 	return 0;
+ }
+ 
++#endif /* CONFIG_PNPACPI */
++
+ struct bus_type acpi_bus_type = {
+ 	.name		= "acpi",
++#if defined CONFIG_PNPACPI
+ 	.match		= acpi_bus_match,
+ 	.probe		= acpi_device_probe,
+ 	.remove		= acpi_device_remove,
+ 	.uevent		= acpi_device_uevent,
++#endif
+ };
+ 
+ /* --------------------------------------------------------------------------
+@@ -1254,7 +1264,9 @@ static int __init acpi_init(void)
+ 	acpi_sleep_proc_init();
+ 	acpi_wakeup_device_init();
+ 	acpi_debugger_init();
++#if defined CONFIG_PNPACPI
+ 	acpi_setup_sb_notify_handler();
++#endif
+ 	return 0;
+ }
+ 
+diff --git a/drivers/acpi/property.c b/drivers/acpi/property.c
+index 77abe0ec4043..623f934b2713 100644
+--- a/drivers/acpi/property.c
++++ b/drivers/acpi/property.c
+@@ -422,8 +422,10 @@ void acpi_init_properties(struct acpi_device *adev)
+ 		acpi_handle_info(adev->handle,
+ 			 ACPI_DT_NAMESPACE_HID " requires 'compatible' property\n");
+ 
++#if defined CONFIG_ACPI_APPLE
+ 	if (!adev->data.pointer)
+ 		acpi_extract_apple_properties(adev);
++#endif
+ }
+ 
+ static void acpi_destroy_nondev_subnodes(struct list_head *list)
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index 5efd4219f112..3139aa946f97 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -1887,6 +1887,7 @@ static acpi_status acpi_bus_check_add(acpi_handle handle, u32 lvl_not_used,
+ 
+ static void acpi_default_enumeration(struct acpi_device *device)
+ {
++#if defined CONFIG_PNPACPI
+ 	/*
+ 	 * Do not enumerate devices with enumeration_by_parent flag set as
+ 	 * they will be enumerated by their respective parents.
+@@ -1898,6 +1899,7 @@ static void acpi_default_enumeration(struct acpi_device *device)
+ 		blocking_notifier_call_chain(&acpi_reconfig_chain,
+ 					     ACPI_RECONFIG_DEVICE_ADD, device);
+ 	}
++#endif
+ }
+ 
+ static const struct acpi_device_id generic_device_ids[] = {
+@@ -2175,13 +2177,23 @@ int __init acpi_scan_init(void)
+ 	acpi_pci_root_init();
+ 	acpi_pci_link_init();
+ 	acpi_processor_init();
++#if defined CONFIG_X86_INTEL_LPSS
+ 	acpi_lpss_init();
++#endif
++#if defined CONFIG_PNPACPI
+ 	acpi_apd_init();
++#endif
+ 	acpi_cmos_rtc_init();
++#if defined CONFIG_ACPI_CONTAINER
+ 	acpi_container_init();
++#endif
+ 	acpi_memory_hotplug_init();
++#if defined CONFIG_ACPI_WATCHDOG
+ 	acpi_watchdog_init();
++#endif
++#if defined CONFIG_PNPACPI
+ 	acpi_pnp_init();
++#endif
+ 	acpi_int340x_thermal_init();
+ 	acpi_amba_init();
+ 	acpi_init_lpit();
+diff --git a/drivers/pnp/pnpacpi/Kconfig b/drivers/pnp/pnpacpi/Kconfig
+index b04767ce273e..16c604c17fb8 100644
+--- a/drivers/pnp/pnpacpi/Kconfig
++++ b/drivers/pnp/pnpacpi/Kconfig
+@@ -1,6 +1,9 @@
+ #
+ # Plug and Play ACPI configuration
+ #
++
+ config PNPACPI
+-	bool
+-	default (PNP && ACPI)
++	bool "Plug and Play ACPI support"
++	default y
++	help
++	  Don't turn this off unless you know what you're doing.
+diff --git a/drivers/pnp/pnpbios/Kconfig b/drivers/pnp/pnpbios/Kconfig
+index a786086b2ec7..8799758ac86c 100644
+--- a/drivers/pnp/pnpbios/Kconfig
++++ b/drivers/pnp/pnpbios/Kconfig
+@@ -1,6 +1,7 @@
+ #
+ # Plug and Play BIOS configuration
+ #
++
+ config PNPBIOS
+ 	bool "Plug and Play BIOS support"
+ 	depends on ISA && X86_32
+-- 
+2.20.1
+
