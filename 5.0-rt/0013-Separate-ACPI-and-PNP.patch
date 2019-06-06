@@ -1,4 +1,4 @@
-From 8a39db7f6b03c57356cb800370899cabed2c263f Mon Sep 17 00:00:00 2001
+From b1017176f88f1a2178f3e18d3cef87ad7bff0c4d Mon Sep 17 00:00:00 2001
 From: Alec Ari <neotheuser@ymail.com>
 Date: Wed, 5 Jun 2019 23:45:51 -0500
 Subject: Separate ACPI and PNP
@@ -13,9 +13,9 @@ Signed-off-by: Alec Ari <neotheuser@ymail.com>
  drivers/acpi/bus.c           | 12 ++++++++++++
  drivers/acpi/property.c      |  2 ++
  drivers/acpi/scan.c          | 12 ++++++++++++
- drivers/pnp/pnpacpi/Kconfig  |  7 +++++--
+ drivers/pnp/pnpacpi/Kconfig  |  8 ++++++--
  drivers/pnp/pnpbios/Kconfig  |  1 +
- 8 files changed, 49 insertions(+), 12 deletions(-)
+ 8 files changed, 50 insertions(+), 12 deletions(-)
 
 diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
 index 262a60bd45ce..b166f7719c75 100644
@@ -219,10 +219,10 @@ index 5efd4219f112..3139aa946f97 100644
  	acpi_amba_init();
  	acpi_init_lpit();
 diff --git a/drivers/pnp/pnpacpi/Kconfig b/drivers/pnp/pnpacpi/Kconfig
-index b04767ce273e..16c604c17fb8 100644
+index b04767ce273e..d312e91f6abf 100644
 --- a/drivers/pnp/pnpacpi/Kconfig
 +++ b/drivers/pnp/pnpacpi/Kconfig
-@@ -1,6 +1,9 @@
+@@ -1,6 +1,10 @@
  #
  # Plug and Play ACPI configuration
  #
@@ -231,6 +231,7 @@ index b04767ce273e..16c604c17fb8 100644
 -	bool
 -	default (PNP && ACPI)
 +	bool "Plug and Play ACPI support"
++	depends on PNP && ACPI
 +	default y
 +	help
 +	  Don't turn this off unless you know what you're doing.
