@@ -1,0 +1,25 @@
+From 8d36f0af0fbd8a059a0f0b13ae4325223f69768b Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Thu, 6 Jun 2019 00:43:21 -0500
+Subject: Minor Kconfig adjustment
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ drivers/pnp/pnpacpi/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/pnp/pnpacpi/Kconfig b/drivers/pnp/pnpacpi/Kconfig
+index 16c604c17fb8..d312e91f6abf 100644
+--- a/drivers/pnp/pnpacpi/Kconfig
++++ b/drivers/pnp/pnpacpi/Kconfig
+@@ -4,6 +4,7 @@
+ 
+ config PNPACPI
+ 	bool "Plug and Play ACPI support"
++	depends on PNP && ACPI
+ 	default y
+ 	help
+ 	  Don't turn this off unless you know what you're doing.
+-- 
+2.20.1
+
