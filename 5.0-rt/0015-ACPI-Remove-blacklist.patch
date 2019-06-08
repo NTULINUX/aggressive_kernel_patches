@@ -1,0 +1,501 @@
+From 0df5c097307dbeb2161d9bbb1c4ed125979af34b Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Fri, 7 Jun 2019 15:56:08 -0500
+Subject: ACPI: Remove blacklist
+
+Not many boards need this, waste of space for me. Silences
+a build warning too (thanks to my changes.)
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ .../admin-guide/kernel-parameters.txt         |   5 +-
+ arch/x86/kernel/acpi/boot.c                   | 197 ------------------
+ arch/x86/kernel/acpi/sleep.c                  |   2 -
+ arch/x86/platform/efi/quirks.c                |   2 +-
+ drivers/acpi/Makefile                         |   1 -
+ drivers/acpi/blacklist.c                      | 148 -------------
+ drivers/acpi/sleep.c                          |   3 -
+ 7 files changed, 2 insertions(+), 356 deletions(-)
+ delete mode 100644 drivers/acpi/blacklist.c
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 18cad2b0392a..fd07a0ac541d 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -222,7 +222,7 @@
+ 
+ 	acpi_sleep=	[HW,ACPI] Sleep options
+ 			Format: { s3_bios, s3_mode, s3_beep, s4_nohwsig,
+-				  old_ordering, nonvs, sci_force_enable, nobl }
++				  old_ordering, nonvs, sci_force_enable }
+ 			See Documentation/power/video.txt for information on
+ 			s3_bios and s3_mode.
+ 			s3_beep is for debugging; it makes the PC's speaker beep
+@@ -238,9 +238,6 @@
+ 			sci_force_enable causes the kernel to set SCI_EN directly
+ 			on resume from S1/S3 (which is against the ACPI spec,
+ 			but some broken systems don't work without it).
+-			nobl causes the internal blacklist of systems known to
+-			behave incorrectly in some ways with respect to system
+-			suspend and resume to be ignored (use wisely).
+ 
+ 	acpi_use_timer_override [HW,ACPI]
+ 			Use timer override. For some broken Nvidia NF5 boards
+diff --git a/arch/x86/kernel/acpi/boot.c b/arch/x86/kernel/acpi/boot.c
+index 2624de16cd7a..4a6ef93b14b7 100644
+--- a/arch/x86/kernel/acpi/boot.c
++++ b/arch/x86/kernel/acpi/boot.c
+@@ -1333,51 +1333,6 @@ static void __init acpi_process_madt(void)
+ 	return;
+ }
+ 
+-static int __init disable_acpi_irq(const struct dmi_system_id *d)
+-{
+-	if (!acpi_force) {
+-		printk(KERN_NOTICE "%s detected: force use of acpi=noirq\n",
+-		       d->ident);
+-		acpi_noirq_set();
+-	}
+-	return 0;
+-}
+-
+-static int __init disable_acpi_pci(const struct dmi_system_id *d)
+-{
+-	if (!acpi_force) {
+-		printk(KERN_NOTICE "%s detected: force use of pci=noacpi\n",
+-		       d->ident);
+-		acpi_disable_pci();
+-	}
+-	return 0;
+-}
+-
+-static int __init dmi_disable_acpi(const struct dmi_system_id *d)
+-{
+-	if (!acpi_force) {
+-		printk(KERN_NOTICE "%s detected: acpi off\n", d->ident);
+-		disable_acpi();
+-	} else {
+-		printk(KERN_NOTICE
+-		       "Warning: DMI blacklist says broken, but acpi forced\n");
+-	}
+-	return 0;
+-}
+-
+-/*
+- * Force ignoring BIOS IRQ0 override
+- */
+-static int __init dmi_ignore_irq0_timer_override(const struct dmi_system_id *d)
+-{
+-	if (!acpi_skip_timer_override) {
+-		pr_notice("%s detected: Ignoring BIOS IRQ0 override\n",
+-			d->ident);
+-		acpi_skip_timer_override = 1;
+-	}
+-	return 0;
+-}
+-
+ /*
+  * ACPI offers an alternative platform interface model that removes
+  * ACPI hardware requirements for platforms that do not implement
+@@ -1402,139 +1357,6 @@ static void __init acpi_reduced_hw_init(void)
+ 		x86_init.acpi.reduced_hw_early_init();
+ }
+ 
+-/*
+- * If your system is blacklisted here, but you find that acpi=force
+- * works for you, please contact linux-acpi@vger.kernel.org
+- */
+-static const struct dmi_system_id acpi_dmi_table[] __initconst = {
+-	/*
+-	 * Boxes that need ACPI disabled
+-	 */
+-	{
+-	 .callback = dmi_disable_acpi,
+-	 .ident = "IBM Thinkpad",
+-	 .matches = {
+-		     DMI_MATCH(DMI_BOARD_VENDOR, "IBM"),
+-		     DMI_MATCH(DMI_BOARD_NAME, "2629H1G"),
+-		     },
+-	 },
+-
+-	/*
+-	 * Boxes that need ACPI PCI IRQ routing disabled
+-	 */
+-	{
+-	 .callback = disable_acpi_irq,
+-	 .ident = "ASUS A7V",
+-	 .matches = {
+-		     DMI_MATCH(DMI_BOARD_VENDOR, "ASUSTeK Computer INC"),
+-		     DMI_MATCH(DMI_BOARD_NAME, "<A7V>"),
+-		     /* newer BIOS, Revision 1011, does work */
+-		     DMI_MATCH(DMI_BIOS_VERSION,
+-			       "ASUS A7V ACPI BIOS Revision 1007"),
+-		     },
+-	 },
+-	{
+-		/*
+-		 * Latest BIOS for IBM 600E (1.16) has bad pcinum
+-		 * for LPC bridge, which is needed for the PCI
+-		 * interrupt links to work. DSDT fix is in bug 5966.
+-		 * 2645, 2646 model numbers are shared with 600/600E/600X
+-		 */
+-	 .callback = disable_acpi_irq,
+-	 .ident = "IBM Thinkpad 600 Series 2645",
+-	 .matches = {
+-		     DMI_MATCH(DMI_BOARD_VENDOR, "IBM"),
+-		     DMI_MATCH(DMI_BOARD_NAME, "2645"),
+-		     },
+-	 },
+-	{
+-	 .callback = disable_acpi_irq,
+-	 .ident = "IBM Thinkpad 600 Series 2646",
+-	 .matches = {
+-		     DMI_MATCH(DMI_BOARD_VENDOR, "IBM"),
+-		     DMI_MATCH(DMI_BOARD_NAME, "2646"),
+-		     },
+-	 },
+-	/*
+-	 * Boxes that need ACPI PCI IRQ routing and PCI scan disabled
+-	 */
+-	{			/* _BBN 0 bug */
+-	 .callback = disable_acpi_pci,
+-	 .ident = "ASUS PR-DLS",
+-	 .matches = {
+-		     DMI_MATCH(DMI_BOARD_VENDOR, "ASUSTeK Computer INC."),
+-		     DMI_MATCH(DMI_BOARD_NAME, "PR-DLS"),
+-		     DMI_MATCH(DMI_BIOS_VERSION,
+-			       "ASUS PR-DLS ACPI BIOS Revision 1010"),
+-		     DMI_MATCH(DMI_BIOS_DATE, "03/21/2003")
+-		     },
+-	 },
+-	{
+-	 .callback = disable_acpi_pci,
+-	 .ident = "Acer TravelMate 36x Laptop",
+-	 .matches = {
+-		     DMI_MATCH(DMI_SYS_VENDOR, "Acer"),
+-		     DMI_MATCH(DMI_PRODUCT_NAME, "TravelMate 360"),
+-		     },
+-	 },
+-	{}
+-};
+-
+-/* second table for DMI checks that should run after early-quirks */
+-static const struct dmi_system_id acpi_dmi_table_late[] __initconst = {
+-	/*
+-	 * HP laptops which use a DSDT reporting as HP/SB400/10000,
+-	 * which includes some code which overrides all temperature
+-	 * trip points to 16C if the INTIN2 input of the I/O APIC
+-	 * is enabled.  This input is incorrectly designated the
+-	 * ISA IRQ 0 via an interrupt source override even though
+-	 * it is wired to the output of the master 8259A and INTIN0
+-	 * is not connected at all.  Force ignoring BIOS IRQ0
+-	 * override in that cases.
+-	 */
+-	{
+-	 .callback = dmi_ignore_irq0_timer_override,
+-	 .ident = "HP nx6115 laptop",
+-	 .matches = {
+-		     DMI_MATCH(DMI_SYS_VENDOR, "Hewlett-Packard"),
+-		     DMI_MATCH(DMI_PRODUCT_NAME, "HP Compaq nx6115"),
+-		     },
+-	 },
+-	{
+-	 .callback = dmi_ignore_irq0_timer_override,
+-	 .ident = "HP NX6125 laptop",
+-	 .matches = {
+-		     DMI_MATCH(DMI_SYS_VENDOR, "Hewlett-Packard"),
+-		     DMI_MATCH(DMI_PRODUCT_NAME, "HP Compaq nx6125"),
+-		     },
+-	 },
+-	{
+-	 .callback = dmi_ignore_irq0_timer_override,
+-	 .ident = "HP NX6325 laptop",
+-	 .matches = {
+-		     DMI_MATCH(DMI_SYS_VENDOR, "Hewlett-Packard"),
+-		     DMI_MATCH(DMI_PRODUCT_NAME, "HP Compaq nx6325"),
+-		     },
+-	 },
+-	{
+-	 .callback = dmi_ignore_irq0_timer_override,
+-	 .ident = "HP 6715b laptop",
+-	 .matches = {
+-		     DMI_MATCH(DMI_SYS_VENDOR, "Hewlett-Packard"),
+-		     DMI_MATCH(DMI_PRODUCT_NAME, "HP Compaq 6715b"),
+-		     },
+-	 },
+-	{
+-	 .callback = dmi_ignore_irq0_timer_override,
+-	 .ident = "FUJITSU SIEMENS",
+-	 .matches = {
+-		     DMI_MATCH(DMI_SYS_VENDOR, "FUJITSU SIEMENS"),
+-		     DMI_MATCH(DMI_PRODUCT_NAME, "AMILO PRO V2030"),
+-		     },
+-	 },
+-	{}
+-};
+-
+ /*
+  * acpi_boot_table_init() and acpi_boot_init()
+  *  called from setup_arch(), always.
+@@ -1549,15 +1371,12 @@ static const struct dmi_system_id acpi_dmi_table_late[] __initconst = {
+  *	acpi_lapic = 1 if LAPIC found
+  *	acpi_ioapic = 1 if IOAPIC found
+  *	if (acpi_lapic && acpi_ioapic) smp_found_config = 1;
+- *	if acpi_blacklisted() acpi_disabled = 1;
+  *	acpi_irq_model=...
+  *	...
+  */
+ 
+ void __init acpi_boot_table_init(void)
+ {
+-	dmi_check_system(acpi_dmi_table);
+-
+ 	/*
+ 	 * If acpi_disabled, bail out
+ 	 */
+@@ -1573,19 +1392,6 @@ void __init acpi_boot_table_init(void)
+ 	}
+ 
+ 	acpi_table_parse(ACPI_SIG_BOOT, acpi_parse_sbf);
+-
+-	/*
+-	 * blacklist may disable ACPI entirely
+-	 */
+-	if (acpi_blacklisted()) {
+-		if (acpi_force) {
+-			printk(KERN_WARNING PREFIX "acpi=force override\n");
+-		} else {
+-			printk(KERN_WARNING PREFIX "Disabling ACPI support\n");
+-			disable_acpi();
+-			return;
+-		}
+-	}
+ }
+ 
+ int __init early_acpi_boot_init(void)
+@@ -1611,9 +1417,6 @@ int __init early_acpi_boot_init(void)
+ 
+ int __init acpi_boot_init(void)
+ {
+-	/* those are executed after early-quirks are executed */
+-	dmi_check_system(acpi_dmi_table_late);
+-
+ 	/*
+ 	 * If acpi_disabled, bail out
+ 	 */
+diff --git a/arch/x86/kernel/acpi/sleep.c b/arch/x86/kernel/acpi/sleep.c
+index ca13851f0570..14f96170bca8 100644
+--- a/arch/x86/kernel/acpi/sleep.c
++++ b/arch/x86/kernel/acpi/sleep.c
+@@ -137,8 +137,6 @@ static int __init acpi_sleep_setup(char *str)
+ 			acpi_nvs_nosave_s3();
+ 		if (strncmp(str, "old_ordering", 12) == 0)
+ 			acpi_old_suspend_ordering();
+-		if (strncmp(str, "nobl", 4) == 0)
+-			acpi_sleep_no_blacklist();
+ 		str = strchr(str, ',');
+ 		if (str != NULL)
+ 			str += strspn(str, ", \t");
+diff --git a/arch/x86/platform/efi/quirks.c b/arch/x86/platform/efi/quirks.c
+index 6c571ae86947..67b52d0ca0d9 100644
+--- a/arch/x86/platform/efi/quirks.c
++++ b/arch/x86/platform/efi/quirks.c
+@@ -599,7 +599,7 @@ bool efi_reboot_required(void)
+ 
+ bool efi_poweroff_required(void)
+ {
+-	return acpi_gbl_reduced_hardware || acpi_no_s5;
++	return acpi_gbl_reduced_hardware;
+ }
+ 
+ #ifdef CONFIG_EFI_CAPSULE_QUIRK_QUARK_CSH
+diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
+index c76f676eaf81..a4ba3479a23d 100644
+--- a/drivers/acpi/Makefile
++++ b/drivers/acpi/Makefile
+@@ -9,7 +9,6 @@ ccflags-$(CONFIG_ACPI_DEBUG)	+= -DACPI_DEBUG_OUTPUT
+ # ACPI Boot-Time Table Parsing
+ #
+ obj-$(CONFIG_ACPI)		+= tables.o
+-obj-$(CONFIG_X86)		+= blacklist.o
+ 
+ #
+ # ACPI Core Subsystem (Interpreter)
+diff --git a/drivers/acpi/blacklist.c b/drivers/acpi/blacklist.c
+deleted file mode 100644
+index 995c4d8922b1..000000000000
+--- a/drivers/acpi/blacklist.c
++++ /dev/null
+@@ -1,148 +0,0 @@
+-/*
+- *  blacklist.c
+- *
+- *  Check to see if the given machine has a known bad ACPI BIOS
+- *  or if the BIOS is too old.
+- *  Check given machine against acpi_rev_dmi_table[].
+- *
+- *  Copyright (C) 2004 Len Brown <len.brown@intel.com>
+- *  Copyright (C) 2002 Andy Grover <andrew.grover@intel.com>
+- *
+- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- *
+- *  This program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2 of the License, or (at
+- *  your option) any later version.
+- *
+- *  This program is distributed in the hope that it will be useful, but
+- *  WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+- *  General Public License for more details.
+- *
+- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- */
+-
+-#include <linux/kernel.h>
+-#include <linux/init.h>
+-#include <linux/acpi.h>
+-#include <linux/dmi.h>
+-
+-#include "internal.h"
+-
+-static const struct dmi_system_id acpi_rev_dmi_table[] __initconst;
+-
+-/*
+- * POLICY: If *anything* doesn't work, put it on the blacklist.
+- *	   If they are critical errors, mark it critical, and abort driver load.
+- */
+-static struct acpi_platform_list acpi_blacklist[] __initdata = {
+-	/* Compaq Presario 1700 */
+-	{"PTLTD ", "  DSDT  ", 0x06040000, ACPI_SIG_DSDT, less_than_or_equal,
+-	 "Multiple problems", 1},
+-	/* Sony FX120, FX140, FX150? */
+-	{"SONY  ", "U0      ", 0x20010313, ACPI_SIG_DSDT, less_than_or_equal,
+-	 "ACPI driver problem", 1},
+-	/* Compaq Presario 800, Insyde BIOS */
+-	{"INT440", "SYSFexxx", 0x00001001, ACPI_SIG_DSDT, less_than_or_equal,
+-	 "Does not use _REG to protect EC OpRegions", 1},
+-	/* IBM 600E - _ADR should return 7, but it returns 1 */
+-	{"IBM   ", "TP600E  ", 0x00000105, ACPI_SIG_DSDT, less_than_or_equal,
+-	 "Incorrect _ADR", 1},
+-
+-	{ }
+-};
+-
+-int __init acpi_blacklisted(void)
+-{
+-	int i;
+-	int blacklisted = 0;
+-
+-	i = acpi_match_platform_list(acpi_blacklist);
+-	if (i >= 0) {
+-		pr_err(PREFIX "Vendor \"%6.6s\" System \"%8.8s\" Revision 0x%x has a known ACPI BIOS problem.\n",
+-		       acpi_blacklist[i].oem_id,
+-		       acpi_blacklist[i].oem_table_id,
+-		       acpi_blacklist[i].oem_revision);
+-
+-		pr_err(PREFIX "Reason: %s. This is a %s error\n",
+-		       acpi_blacklist[i].reason,
+-		       (acpi_blacklist[i].data ?
+-			"non-recoverable" : "recoverable"));
+-
+-		blacklisted = acpi_blacklist[i].data;
+-	}
+-
+-	(void)early_acpi_osi_init();
+-	dmi_check_system(acpi_rev_dmi_table);
+-
+-	return blacklisted;
+-}
+-#ifdef CONFIG_DMI
+-#ifdef CONFIG_ACPI_REV_OVERRIDE_POSSIBLE
+-static int __init dmi_enable_rev_override(const struct dmi_system_id *d)
+-{
+-	printk(KERN_NOTICE PREFIX "DMI detected: %s (force ACPI _REV to 5)\n",
+-	       d->ident);
+-	acpi_rev_override_setup(NULL);
+-	return 0;
+-}
+-#endif
+-
+-static const struct dmi_system_id acpi_rev_dmi_table[] __initconst = {
+-#ifdef CONFIG_ACPI_REV_OVERRIDE_POSSIBLE
+-	/*
+-	 * DELL XPS 13 (2015) switches sound between HDA and I2S
+-	 * depending on the ACPI _REV callback. If userspace supports
+-	 * I2S sufficiently (or if you do not care about sound), you
+-	 * can safely disable this quirk.
+-	 */
+-	{
+-	 .callback = dmi_enable_rev_override,
+-	 .ident = "DELL XPS 13 (2015)",
+-	 .matches = {
+-		      DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
+-		      DMI_MATCH(DMI_PRODUCT_NAME, "XPS 13 9343"),
+-		},
+-	},
+-	{
+-	 .callback = dmi_enable_rev_override,
+-	 .ident = "DELL Precision 5520",
+-	 .matches = {
+-		      DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
+-		      DMI_MATCH(DMI_PRODUCT_NAME, "Precision 5520"),
+-		},
+-	},
+-	{
+-	 .callback = dmi_enable_rev_override,
+-	 .ident = "DELL Precision 3520",
+-	 .matches = {
+-		      DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
+-		      DMI_MATCH(DMI_PRODUCT_NAME, "Precision 3520"),
+-		},
+-	},
+-	/*
+-	 * Resolves a quirk with the Dell Latitude 3350 that
+-	 * causes the ethernet adapter to not function.
+-	 */
+-	{
+-	 .callback = dmi_enable_rev_override,
+-	 .ident = "DELL Latitude 3350",
+-	 .matches = {
+-		      DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
+-		      DMI_MATCH(DMI_PRODUCT_NAME, "Latitude 3350"),
+-		},
+-	},
+-	{
+-	 .callback = dmi_enable_rev_override,
+-	 .ident = "DELL Inspiron 7537",
+-	 .matches = {
+-		      DMI_MATCH(DMI_SYS_VENDOR, "Dell Inc."),
+-		      DMI_MATCH(DMI_PRODUCT_NAME, "Inspiron 7537"),
+-		},
+-	},
+-#endif
+-	{}
+-};
+-
+-#endif /* CONFIG_DMI */
+diff --git a/drivers/acpi/sleep.c b/drivers/acpi/sleep.c
+index e52f1238d2d6..90ab0790ad62 100644
+--- a/drivers/acpi/sleep.c
++++ b/drivers/acpi/sleep.c
+@@ -30,7 +30,6 @@
+  * Some HW-full platforms do not have _S5, so they may need
+  * to leverage efi power off for a shutdown.
+  */
+-bool acpi_no_s5;
+ static u8 sleep_states[ACPI_S_STATE_COUNT];
+ 
+ static void acpi_sleep_tts_switch(u32 acpi_state)
+@@ -1293,8 +1292,6 @@ int __init acpi_sleep_init(void)
+ 		sleep_states[ACPI_STATE_S5] = 1;
+ 		pm_power_off_prepare = acpi_power_off_prepare;
+ 		pm_power_off = acpi_power_off;
+-	} else {
+-		acpi_no_s5 = true;
+ 	}
+ 
+ 	supported[0] = 0;
+-- 
+2.20.1
+

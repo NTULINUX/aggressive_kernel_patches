@@ -1,0 +1,77 @@
+From b4e85bd67f168776ceba6c6b06d351687118b65a Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Fri, 7 Jun 2019 15:08:01 -0500
+Subject: ACPI: Disable legacy tables if EFI_STUB is enabled
+
+Fix the most important part of the universe too; whitespace.
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ arch/x86/Kconfig     | 6 +++---
+ drivers/acpi/Kconfig | 1 +
+ drivers/acpi/osl.c   | 6 ++++--
+ 3 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 288ad242e019..fa454b0dec58 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -44,7 +44,6 @@ config X86
+ 	#
+ 	# Note: keep this list sorted alphabetically
+ 	#
+-	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+ 	select ANON_INODES
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_CLOCKSOURCE_INIT
+@@ -1955,8 +1954,9 @@ config EFI_STUB
+        depends on EFI && !X86_USE_3DNOW
+        select RELOCATABLE
+        ---help---
+-          This kernel feature allows a bzImage to be loaded directly
+-	  by EFI firmware without the use of a bootloader.
++	  This kernel feature allows a bzImage to be loaded directly
++	  by EFI firmware without the use of a bootloader. Enabling this
++	  option may not work on systems without proper EFI stub support.
+ 
+ 	  See Documentation/efi-stub.txt for more information.
+ 
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index b166f7719c75..ea1542601b3c 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -46,6 +46,7 @@ if ACPI
+ 
+ config ACPI_LEGACY_TABLES_LOOKUP
+ 	bool
++	default y if X86 && !EFI_STUB
+ 
+ config ARCH_MIGHT_HAVE_ACPI_PDC
+ 	bool
+diff --git a/drivers/acpi/osl.c b/drivers/acpi/osl.c
+index f29e427d0d1d..c4e7b7ed425b 100644
+--- a/drivers/acpi/osl.c
++++ b/drivers/acpi/osl.c
+@@ -201,15 +201,17 @@ acpi_physical_address __init acpi_os_get_root_pointer(void)
+ 	if (pa)
+ 		return pa;
+ 
++#if defined CONFIG_EFI_STUB
+ 	if (efi_enabled(EFI_CONFIG_TABLES)) {
+ 		if (efi.acpi20 != EFI_INVALID_TABLE_ADDR)
+ 			return efi.acpi20;
+ 		if (efi.acpi != EFI_INVALID_TABLE_ADDR)
+ 			return efi.acpi;
+ 		pr_err(PREFIX "System description tables not found\n");
+-	} else if (IS_ENABLED(CONFIG_ACPI_LEGACY_TABLES_LOOKUP)) {
+-		acpi_find_root_pointer(&pa);
+ 	}
++#else
++		acpi_find_root_pointer(&pa);
++#endif
+ 
+ 	return pa;
+ }
+-- 
+2.20.1
+
