@@ -1,0 +1,64 @@
+From 579e90566f00f0093ec1af4ec123017d76cc8903 Mon Sep 17 00:00:00 2001
+From: Alec Ari <neotheuser@ymail.com>
+Date: Sun, 9 Jun 2019 01:50:56 -0500
+Subject: Further ACPI separation
+
+Signed-off-by: Alec Ari <neotheuser@ymail.com>
+---
+ drivers/acpi/Makefile | 4 ++--
+ drivers/acpi/scan.c   | 8 ++++++++
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
+index a4ba3479a23d..c4bbc56176bb 100644
+--- a/drivers/acpi/Makefile
++++ b/drivers/acpi/Makefile
+@@ -79,7 +79,7 @@ obj-$(CONFIG_ACPI_PROCESSOR)	+= processor.o
+ obj-$(CONFIG_ACPI_CONTAINER)	+= container.o
+ obj-$(CONFIG_ACPI_THERMAL)	+= thermal.o
+ obj-$(CONFIG_ACPI_NFIT)		+= nfit/
+-obj-$(CONFIG_ACPI)		+= acpi_memhotplug.o
++obj-$(CONFIG_ACPI_HOTPLUG_MEMORY)	 += acpi_memhotplug.o
+ obj-$(CONFIG_ACPI_HOTPLUG_IOAPIC) += ioapic.o
+ obj-$(CONFIG_ACPI_BATTERY)	+= battery.o
+ obj-$(CONFIG_ACPI_SBS)		+= sbshc.o
+@@ -118,6 +118,6 @@ obj-$(CONFIG_ACPI_CONFIGFS)	+= acpi_configfs.o
+ obj-$(CONFIG_TPS68470_PMIC_OPREGION)	+= pmic/tps68470_pmic.o
+ 
+ video-objs			+= acpi_video.o video_detect.o
+-obj-y				+= dptf/
++obj-$(CONFIG_DPTF_POWER)	+= dptf/
+ 
+ obj-$(CONFIG_ARM64)		+= arm64/
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index 3139aa946f97..d39a9d124f95 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -2187,16 +2187,24 @@ int __init acpi_scan_init(void)
+ #if defined CONFIG_ACPI_CONTAINER
+ 	acpi_container_init();
+ #endif
++#if defined CONFIG_ACPI_HOTPLUG_MEMORY
+ 	acpi_memory_hotplug_init();
++#endif
+ #if defined CONFIG_ACPI_WATCHDOG
+ 	acpi_watchdog_init();
+ #endif
+ #if defined CONFIG_PNPACPI
+ 	acpi_pnp_init();
+ #endif
++#if defined CONFIG_DPTF_POWER
+ 	acpi_int340x_thermal_init();
++#endif
++#if defined CONFIG_ARM_AMBA
+ 	acpi_amba_init();
++#endif
++#if defined CONFIG_ACPI_LPIT
+ 	acpi_init_lpit();
++#endif
+ 
+ 	acpi_scan_add_handler(&generic_device_handler);
+ 
+-- 
+2.20.1
+
